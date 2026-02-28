@@ -7,7 +7,9 @@
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
 label { font-weight: bold; display: block; margin-top: 10px; }
-input, select { margin-bottom: 10px; width: 100%; padding: 5px; }
+input, select { margin-bottom: 10px; padding: 5px; }
+input.short { width: 120px; } /* scurt pentru majoritatea câmpurilor */
+input.comment { width: 100%; }
 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
 th, td { border: 1px solid #000; padding: 8px; text-align: center; }
 #alertExcel { background-color: #ffcccc; color: #990000; border: 2px solid #990000; padding: 15px; font-size: 18px; text-align: center; margin: 15px 0; font-weight: bold; }
@@ -25,20 +27,20 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 
 <!-- Global Daily Info -->
 <label>Vehicle:</label>
-<input type="text" id="vehicle" placeholder="Enter Vehicle Number">
+<input type="text" id="vehicle" class="short" placeholder="Vehicle #">
 
 <label>Run:</label>
-<input type="number" id="run">
+<input type="number" id="run" class="short">
 
 <label>Date:</label>
-<input type="date" id="date">
+<input type="date" id="date" class="short">
 
 <hr>
 
 <!-- Collection / Delivery -->
 <label>Collection and Delivery Point:</label>
-<select id="location" onchange="checkManual()">
-    <option value="">Select location</option>
+<select id="location" onchange="checkManual()" class="short">
+    <option value="">Select</option>
     <option>AC</option>
     <option>ASC</option>
     <option>BA WC</option>
@@ -62,32 +64,32 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
     <option>ECMS</option>
     <option>Swissport</option>
     <option>BREAK</option>
-    <option value="manual">Other (Manual Entry)</option>
+    <option value="manual">Other (Manual)</option>
 </select>
-<input type="text" id="manualLocation" placeholder="Enter location manually" style="display:none; margin-bottom:10px;">
+<input type="text" id="manualLocation" class="short" placeholder="Enter location" style="display:none; margin-bottom:10px;">
 
 <label>Booking Time:</label>
-<input type="time" id="booking">
+<input type="time" id="booking" class="short">
 
 <label>Arrival Time:</label>
-<input type="time" id="arrival">
+<input type="time" id="arrival" class="short">
 
 <label>Loading:</label>
-<input type="time" id="loading">
+<input type="time" id="loading" class="short">
 
 <label>Departure:</label>
-<input type="time" id="departure">
+<input type="time" id="departure" class="short">
 
 <label>Comment:</label>
-<input type="text" id="comment">
+<input type="text" id="comment" class="comment" placeholder="Add comment">
 
 <button onclick="addEntry()">Add Location</button>
 
 <div id="alertExcel">
-⚠️ Important: After adding all locations, make sure to click <strong>Generate Excel</strong> to save your daily report locally! ⚠️
+⚠️ Important: After adding all locations, make sure to click <strong>Send Excel</strong> to save your daily report locally! ⚠️
 </div>
 
-<button onclick="generateExcel()">Generate Excel</button>
+<button onclick="sendExcel()">Send Excel</button>
 
 <!-- Table -->
 <table id="reportTable">
@@ -110,6 +112,7 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
+// auto-skip timp
 const timeFields = ['booking','arrival','loading','departure'];
 timeFields.forEach((id,index)=>{
     document.getElementById(id).addEventListener('input',function(){
@@ -125,36 +128,27 @@ function checkManual(){
     document.getElementById("manualLocation").style.display=loc==="manual"?"block":"none";
 }
 
-// ======== LocalStorage Structure ========
-// dailyData = {
-//   "YYYY-MM-DD": {
-//       "Run1": [ {row1}, {row2}, ... ],
-//       "Run2": [ ... ]
-//   }
-// }
-
+// ===== Storage Structure =====
 let todayStr = new Date().toISOString().split('T')[0];
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
 let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
 
-// Check if previous day was generated
-let yesterday = new Date();
-yesterday.setDate(yesterday.getDate()-1);
+// check yesterday
+let yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
 let yesterdayStr = yesterday.toISOString().split('T')[0];
 if(!generatedDays[yesterdayStr] && Object.keys(dailyData).length>0){
     document.getElementById("alertBlock").style.display="block";
     document.querySelectorAll('input, select, button').forEach(el=>{
-        if(!el.innerText.includes("Generate Excel")) el.disabled=true;
+        if(!el.innerText.includes("Send Excel")) el.disabled=true;
     });
 }
 
-// Load vehicle/run/date from localStorage
+// load global values
 window.onload=function(){
     if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
     if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
     if(localStorage.getItem('date')) document.getElementById('date').value=localStorage.getItem('date');
 
-    // preset times
     if(!document.getElementById('booking').value) document.getElementById('booking').value="08:00";
     if(!document.getElementById('arrival').value) document.getElementById('arrival').value="08:30";
     if(!document.getElementById('loading').value) document.getElementById('loading').value="08:45";
@@ -163,11 +157,7 @@ window.onload=function(){
     loadTable();
 };
 
-// ======== Functions ========
-
-function getRunKey(){
-    return document.getElementById('run').value;
-}
+function getRunKey(){ return document.getElementById('run').value; }
 
 function loadTable(){
     const tbody=document.getElementById('reportTable').getElementsByTagName('tbody')[0];
@@ -213,7 +203,6 @@ function addEntry(){
 
     loadTable();
 
-    // clear input fields
     document.getElementById("location").value="";
     document.getElementById("manualLocation").value="";
     document.getElementById("manualLocation").style.display="none";
@@ -221,7 +210,7 @@ function addEntry(){
     document.getElementById("comment").value="";
 }
 
-function generateExcel(){
+function sendExcel(){
     const tbody=document.getElementById('reportTable').getElementsByTagName('tbody')[0];
     const rows=tbody.getElementsByTagName('tr');
     const data=[];
@@ -243,14 +232,21 @@ function generateExcel(){
     const wb=XLSX.utils.book_new();
     const ws=XLSX.utils.json_to_sheet(data);
     XLSX.utils.book_append_sheet(wb,ws,"DailyReport");
-    XLSX.writeFile(wb,"DriverDailyReport.xlsx");
 
-    // mark today as generated
+    const wbout=XLSX.write(wb,{bookType:'xlsx', type:'array'});
+    const blob=new Blob([wbout],{type:"application/octet-stream"});
+    const url=URL.createObjectURL(blob);
+
+    const a=document.createElement('a');
+    a.href=url;
+    a.download=`DriverDailyReport_Run${document.getElementById('run').value}_${document.getElementById('date').value}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+
     generatedDays[todayStr]=true;
     localStorage.setItem('generatedDays',JSON.stringify(generatedDays));
-    alert("Excel generated! You can now start tomorrow's report.");
+    alert("Excel generated! You can now quickly attach it to an email.");
 }
 </script>
-
 </body>
 </html>
