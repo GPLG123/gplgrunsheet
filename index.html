@@ -173,14 +173,13 @@ window.onload=function(){
     loadTable(todayStr);
 };
 
-// Load table filtered by date
+// Load table filtered by date + run
 function getRunKey(){ return document.getElementById('run').value; }
 
 document.getElementById('filterDate').addEventListener('change', function(){
     const selectedDate = this.value;
     if(!selectedDate) return;
 
-    // Verifică ziua precedentă
     const prevDate = new Date(selectedDate);
     prevDate.setDate(prevDate.getDate()-1);
     const prevDateStr = prevDate.toISOString().split('T')[0];
@@ -195,20 +194,25 @@ document.getElementById('filterDate').addEventListener('change', function(){
     loadTable(selectedDate);
 });
 
+document.getElementById('run').addEventListener('input', function(){
+    const selectedDate = document.getElementById('filterDate').value || todayStr;
+    loadTable(selectedDate);
+});
+
 function loadTable(dateForTable = todayStr){
-    const tbody=document.getElementById('reportTable').getElementsByTagName('tbody')[0];
-    tbody.innerHTML="";
-    const runKey=getRunKey();
+    const tbody = document.getElementById('reportTable').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = "";
+    const runKey = getRunKey();
     if(!dailyData[dateForTable]) return;
 
     Object.keys(dailyData[dateForTable]).forEach(run=>{
         if(runKey && run !== runKey) return;
         dailyData[dateForTable][run].forEach(entry=>{
-            const row=tbody.insertRow();
+            const row = tbody.insertRow();
             Object.values(entry).forEach(v=>{
-                const cell=row.insertCell();
-                cell.innerText=v;
-                cell.contentEditable=true;
+                const cell = row.insertCell();
+                cell.innerText = v;
+                cell.contentEditable = true;
             });
         });
     });
@@ -255,12 +259,16 @@ function sendExcel(){
         return;
     }
 
+    const runKey = getRunKey();
     const data=[];
-    Object.values(dailyData[selectedDate]).forEach(runEntries=>{
-        runEntries.forEach(entry=>{
+    Object.keys(dailyData[selectedDate]).forEach(run=>{
+        if(runKey && run !== runKey) return;
+        dailyData[selectedDate][run].forEach(entry=>{
             data.push(entry);
         });
     });
+
+    if(data.length===0){ alert("No data to generate for selected Run/Date!"); return; }
 
     const wb=XLSX.utils.book_new();
     const ws=XLSX.utils.json_to_sheet(data);
