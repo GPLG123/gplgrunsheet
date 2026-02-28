@@ -1,121 +1,164 @@
-<!DOCTYPE html>
-<html lang="ro">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>GPLG Run Sheet - Drag & Drop</title>
-<style>
-  body {
-    font-family: Arial, sans-serif;
-    margin: 20px;
-    background-color: #f9f9f9;
-  }
+index.html‎
++46
+-32
+Lines changed: 46 additions & 32 deletions
+Original file line number	Diff line number	Diff line change
+@@ -26,9 +26,6 @@ <h2>Driver Daily Report</h2>
+<label>Run:</label>
+<input type="text" id="run" class="short" placeholder="Run #">
 
-  h1, h3 {
-    color: #333;
-  }
+<label>Date:</label>
+<input type="date" id="date" class="short" value="">
+<hr>
 
-  .dragDropContainer {
-    max-width: 400px;
-    margin-top: 20px;
-    padding: 20px;
-    border: 1px solid #aaa;
-    border-radius: 8px;
-    background-color: #fafafa;
-  }
+<label>Collection and Delivery Point:</label>
+@@ -81,7 +78,7 @@ <h2>Driver Daily Report</h2>
+<hr>
 
-  .dragDropContainer h3 {
-    margin-bottom: 12px;
-  }
+<label>Select Date to View / Generate Excel:</label>
+<input type="date" id="filterDate" class="short" value="">
+<input type="date" id="filterDate" class="short">
 
-  ul {
-    list-style-type: none;
-    padding: 0;
-  }
+<div id="alertExcel">
+⚠️ Important: After adding all locations, make sure to click <strong>Send Excel</strong> to save your daily report locally! ⚠️
+@@ -127,41 +124,57 @@ <h2>Driver Daily Report</h2>
+}
 
-  li {
-    padding: 8px 12px;
-    margin: 6px 0;
-    background-color: #f0f8ff;
-    border: 1px solid #888;
-    border-radius: 4px;
-    cursor: grab;
-  }
+// ===== Storage =====
+let todayStr = new Date().toISOString().split('T')[0];
+let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
+let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
 
-  #dropZone {
-    min-height: 150px;
-    background-color: #fff0f0;
-    border: 2px dashed #aa0000;
-    padding: 15px;
-    margin-top: 20px;
-    border-radius: 6px;
-  }
+// Load saved global values
+window.onload=function(){
+    if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
+    if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
+    if(localStorage.getItem('date')) document.getElementById('date').value=localStorage.getItem('date');
+    document.getElementById('filterDate').value = todayStr;
 
-  .droppedItem {
-    padding: 6px 10px;
-    margin: 4px 0;
-    background-color: #d0ffd0;
-    border: 1px solid #0c0;
-    border-radius: 4px;
-  }
-</style>
-</head>
-<body>
+    if(!document.getElementById('arrival').value) document.getElementById('arrival').value="08:30";
+    if(!document.getElementById('booking').value) document.getElementById('booking').value="08:00";
+    if(!document.getElementById('loading').value) document.getElementById('loading').value="08:45";
+    if(!document.getElementById('departure').value) document.getElementById('departure').value="09:00";
+    loadTable(todayStr);
+    populateFilterDate();
+    const today = new Date().toISOString().split('T')[0];
+    loadTable(today);
+};
 
-<h1>GPLG Run Sheet</h1>
+// Load table filtered by date + run
+function getRunKey(){ return document.getElementById('run').value; }
 
-<!-- Collection & Delivery Specification List -->
-<div class="dragDropContainer">
-  <h3>Collection & Delivery Specification</h3>
-  <ul id="specList">
-    <li draggable="true" class="draggable">Collection</li>
-    <li draggable="true" class="draggable">Delivery</li>
-  </ul>
-</div>
-
-<!-- Collection and Delivery Points List -->
-<div class="dragDropContainer">
-  <h3>Collection and Delivery Points</h3>
-  <ul id="pointsList">
-    <li draggable="true" class="draggable">LG</li>
-    <li draggable="true" class="draggable">AC</li>
-    <li draggable="true" class="draggable">BA WC</li>
-    <li draggable="true" class="draggable">Dnata CX</li>
-    <li draggable="true" class="draggable">BREAK</li>
-    <li draggable="true" class="draggable">LANDMARK GLOBAL</li>
-  </ul>
-</div>
-
-<!-- Drop Zone -->
-<div id="dropZone">
-  <h3>Drop Here</h3>
-</div>
-
-<script>
-  const draggables = document.querySelectorAll('.draggable');
-  const dropZone = document.getElementById('dropZone');
-
-  draggables.forEach(item => {
-    item.addEventListener('dragstart', (e) => {
-      e.dataTransfer.setData('text/plain', e.target.innerText);
+function populateFilterDate() {
+    const filterDate = document.getElementById('filterDate');
+    const dateSet = new Set();
+    Object.keys(dailyData).forEach(day => {
+        Object.keys(dailyData[day]).forEach(run=>{
+            dailyData[day][run].forEach(entry=>{
+                dateSet.add(entry.date);
+            });
+        });
     });
-  });
+    const dates = Array.from(dateSet).sort();
+    if(dates.length === 0){
+        filterDate.value = "";
+        filterDate.placeholder = "No data available";
+        return;
+    }
+    filterDate.value = dates[0];
+    filterDate.min = dates[0];
+    filterDate.max = dates[dates.length-1];
+}
+document.getElementById('filterDate').addEventListener('change', function(){
+    const selectedDate = this.value;
+    if(!selectedDate) return;
+    loadTable(selectedDate);
+});
 
-  dropZone.addEventListener('dragover', (e) => {
-    e.preventDefault();
-  });
+document.getElementById('run').addEventListener('input', function(){
+    const selectedDate = document.getElementById('filterDate').value || todayStr;
+    const selectedDate = document.getElementById('filterDate').value;
+    if(!selectedDate) return;
+    loadTable(selectedDate);
+});
 
-  dropZone.addEventListener('drop', (e) => {
-    e.preventDefault();
-    const data = e.dataTransfer.getData('text/plain');
+function loadTable(dateForTable = todayStr){
+function loadTable(dateForTable){
+    const tbody = document.getElementById('reportTable').getElementsByTagName('tbody')[0];
+    tbody.innerHTML = "";
+    const runKey = getRunKey();
+@@ -171,10 +184,10 @@ <h2>Driver Daily Report</h2>
+        if(runKey && run !== runKey) return;
+        dailyData[dateForTable][run].forEach(entry=>{
+            const row = tbody.insertRow();
+            Object.values(entry).forEach(v=>{
+            Object.keys(entry).forEach(key=>{
+                const cell = row.insertCell();
+                cell.innerText = v;
+                cell.contentEditable = true;
+                cell.innerText = entry[key];
+                if(key!=="date") cell.contentEditable = true;
+            });
+        });
+    });
+@@ -183,7 +196,6 @@ <h2>Driver Daily Report</h2>
+function addEntry(){
+    const vehicle=document.getElementById('vehicle').value;
+    const run=document.getElementById('run').value;
+    const date=document.getElementById('date').value;
+    const locationSelect=document.getElementById('location').value;
+    const location=locationSelect==="manual"?document.getElementById('manualLocation').value:locationSelect;
+    const booking=document.getElementById('booking').value;
+@@ -192,31 +204,35 @@ <h2>Driver Daily Report</h2>
+    const departure=document.getElementById('departure').value;
+    const comment=document.getElementById('comment').value;
 
-    const newItem = document.createElement('div');
-    newItem.innerText = data;
-    newItem.className = 'droppedItem';
+    if(!vehicle||!run||!date||!location){alert("Please fill all required fields!"); return;}
+    if(!vehicle||!run||!location){alert("Please fill all required fields!"); return;}
+    const today = new Date().toISOString().split('T')[0];
 
-    dropZone.appendChild(newItem);
-  });
+    localStorage.setItem('vehicle',vehicle);
+    localStorage.setItem('run',run);
+    localStorage.setItem('date',date);
+
+    if(!dailyData[date]) dailyData[date]={};
+    if(!dailyData[date][run]) dailyData[date][run]=[];
+    if(!dailyData[today]) dailyData[today]={};
+    if(!dailyData[today][run]) dailyData[today][run]=[];
+
+    const entry={date,vehicle,run,location,arrival,booking,loading,departure,comment};
+    dailyData[date][run].push(entry);
+    const entry={date:today,vehicle,run,location,arrival,booking,loading,departure,comment};
+    dailyData[today][run].push(entry);
+    localStorage.setItem('dailyData',JSON.stringify(dailyData));
+
+    loadTable(document.getElementById('filterDate').value || todayStr);
+    const filterDate = document.getElementById('filterDate').value || today;
+    loadTable(filterDate);
+
+    document.getElementById("location").value="";
+    document.getElementById("manualLocation").value="";
+    document.getElementById("manualLocation").style.display="none";
+    timeFields.forEach(f=>document.getElementById(f).value="");
+    document.getElementById("comment").value="";
+    populateFilterDate();
+}
+
+function sendExcel(){
+    const selectedDate = document.getElementById('filterDate').value || todayStr;
+    if(!dailyData[selectedDate]){
+    const selectedDate = document.getElementById('filterDate').value;
+    if(!selectedDate || !dailyData[selectedDate]){
+        alert("No data for selected date!");
+        return;
+    }
+@@ -246,8 +262,6 @@ <h2>Driver Daily Report</h2>
+    a.click();
+    URL.revokeObjectURL(url);
+
+    generatedDays[selectedDate]=true;
+    localStorage.setItem('generatedDays',JSON.stringify(generatedDays));
+    alert("Excel generated for " + selectedDate);
+}
 </script>
 
-</body>
-</html>
