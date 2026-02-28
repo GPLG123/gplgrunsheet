@@ -1,34 +1,32 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Driver Daily Report</title>
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    label { font-weight: bold; margin-top: 10px; display: block; }
-    input[type="text"], input[type="time"], select, textarea {
-      margin-top: 4px; margin-bottom: 10px; padding: 6px; width: 220px; box-sizing: border-box;
-    }
-    textarea { width: 100%; height: 40px; resize: vertical; }
-    button { padding: 8px 15px; margin-top: 10px; cursor: pointer; }
-    table { width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 14px; }
-    th, td { border: 1px solid #888; padding: 6px 8px; text-align: center; }
-    th { background-color: #eee; }
-    td[contenteditable="true"]:focus { outline: 2px solid #6ca0dc; background-color: #f0f8ff; }
-    #alertExcel { margin-top: 15px; background-color: #f8d7da; border: 1px solid #f5c6cb; color: #721c24; padding: 10px; font-weight: bold; }
-    .short { width: 120px; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Driver Daily Report</title>
+<style>
+body { font-family: Arial, sans-serif; margin: 20px; }
+label { font-weight: bold; margin-top: 10px; display: block; }
+input[type="text"], input[type="time"], select, textarea { margin-top:4px; margin-bottom:10px; padding:6px; width:220px; box-sizing:border-box;}
+textarea { width:100%; height:40px; resize:vertical;}
+button { padding:8px 15px; margin-top:10px; cursor:pointer;}
+table { width:100%; border-collapse: collapse; margin-top:20px; font-size:14px;}
+th, td { border:1px solid #888; padding:6px 8px; text-align:center;}
+th { background-color:#eee;}
+td[contenteditable="true"]:focus { outline:2px solid #6ca0dc; background-color:#f0f8ff; }
+#alertExcel { margin-top:15px; background-color:#f8d7da; border:1px solid #f5c6cb; color:#721c24; padding:10px; font-weight:bold; }
+.short { width:120px;}
+</style>
 </head>
 <body>
 
 <h2>Driver Daily Report</h2>
 
 <label for="vehicle">Vehicle:</label>
-<input type="text" id="vehicle" class="short" placeholder="Vehicle" />
+<input type="text" id="vehicle" class="short" placeholder="Vehicle">
 
 <label for="run">Run:</label>
-<input type="text" id="run" class="short" placeholder="Run #" />
+<input type="text" id="run" class="short" placeholder="Run #">
 
 <hr>
 
@@ -71,19 +69,19 @@
   <option value="manual">Other (Manual)</option>
 </select>
 
-<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;" />
+<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;">
 
 <label for="arrival">Arrival Time:</label>
-<input type="time" id="arrival" />
+<input type="time" id="arrival">
 
 <label for="booking">Booking Time:</label>
-<input type="time" id="booking" />
+<input type="time" id="booking">
 
 <label for="loading">Loading:</label>
-<input type="time" id="loading" />
+<input type="time" id="loading">
 
 <label for="departure">Departure:</label>
-<input type="time" id="departure" />
+<input type="time" id="departure">
 
 <label for="comment">Comment:</label>
 <textarea id="comment" placeholder="Add comment"></textarea>
@@ -93,7 +91,7 @@
 <hr>
 
 <label for="filterDate">Select Date to View / Generate Excel:</label>
-<input type="date" id="filterDate" class="short" />
+<input type="date" id="filterDate" class="short">
 
 <div id="alertExcel">
 ⚠️ Important: After adding all locations, make sure to click <strong>Send Excel</strong> to save your daily report locally! ⚠️
@@ -101,182 +99,167 @@
 
 <button id="sendExcelBtn" type="button">Send Excel</button>
 
-<table id="reportTable" aria-label="Driver Daily Report Table">
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Vehicle</th>
-      <th>Run</th>
-      <th>Collection and Delivery Point</th>
-      <th>Arrival Time</th>
-      <th>Booking Time</th>
-      <th>Loading</th>
-      <th>Departure</th>
-      <th>Collection and Delivery Specification</th>
-      <th>Comment</th>
-    </tr>
-  </thead>
-  <tbody></tbody>
+<table id="reportTable">
+<thead>
+<tr>
+<th>Date</th>
+<th>Vehicle</th>
+<th>Run</th>
+<th>Collection and Delivery Point</th>
+<th>Arrival Time</th>
+<th>Booking Time</th>
+<th>Loading</th>
+<th>Departure</th>
+<th>Collection and Delivery Specification</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody></tbody>
 </table>
 
 <script>
-  document.getElementById('location').addEventListener('change', function() {
-    if(this.value === 'manual') {
-      document.getElementById('manualLocation').style.display = 'block';
-    } else {
-      document.getElementById('manualLocation').style.display = 'none';
-      document.getElementById('manualLocation').value = '';
-    }
+document.getElementById('location').addEventListener('change', function() {
+  if(this.value==='manual') document.getElementById('manualLocation').style.display='block';
+  else { document.getElementById('manualLocation').style.display='none'; document.getElementById('manualLocation').value=''; }
+});
+
+let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
+let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
+
+window.onload = function(){
+  if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
+  if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
+  if(localStorage.getItem('specification')) document.getElementById('specification').value=localStorage.getItem('specification');
+
+  if(!document.getElementById('arrival').value) document.getElementById('arrival').value="08:30";
+  if(!document.getElementById('booking').value) document.getElementById('booking').value="08:00";
+  if(!document.getElementById('loading').value) document.getElementById('loading').value="08:45";
+  if(!document.getElementById('departure').value) document.getElementById('departure').value="09:00";
+
+  populateFilterDate();
+  document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+  loadTable();
+};
+
+function populateFilterDate(){
+  const filterDate=document.getElementById('filterDate');
+  const dateSet=new Set();
+  Object.keys(dailyData).forEach(day=>{
+    Object.keys(dailyData[day]).forEach(run=>{
+      dailyData[day][run].forEach(entry=>{ dateSet.add(entry.date); });
+    });
   });
+  const dates=Array.from(dateSet).sort();
+  if(dates.length===0){ filterDate.value=""; filterDate.placeholder="No data available"; return; }
+  filterDate.value=dates[0]; filterDate.min=dates[0]; filterDate.max=dates[dates.length-1];
+}
 
-  let dailyData = JSON.parse(localStorage.getItem('dailyData') || "{}");
-  let generatedDays = JSON.parse(localStorage.getItem('generatedDays') || "{}");
+function getRunKey(){ return document.getElementById('run').value.trim(); }
 
-  window.onload = function() {
-    if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value = localStorage.getItem('vehicle');
-    if(localStorage.getItem('run')) document.getElementById('run').value = localStorage.getItem('run');
-    if(localStorage.getItem('specification')) document.getElementById('specification').value = localStorage.getItem('specification');
+function loadTable(dateForTable=new Date().toISOString().split('T')[0]){
+  const tbody=document.getElementById('reportTable').getElementsByTagName('tbody')[0];
+  tbody.innerHTML="";
+  const runKey=getRunKey();
+  if(!dailyData[dateForTable]) return;
 
-    if(!document.getElementById('arrival').value) document.getElementById('arrival').value = "08:30";
-    if(!document.getElementById('booking').value) document.getElementById('booking').value = "08:00";
-    if(!document.getElementById('loading').value) document.getElementById('loading').value = "08:45";
-    if(!document.getElementById('departure').value) document.getElementById('departure').value = "09:00";
+  Object.keys(dailyData[dateForTable]).forEach(run=>{
+    if(runKey && run!==runKey) return;
+    dailyData[dateForTable][run].forEach(entry=>{
+      const row=tbody.insertRow();
+      let cell;
 
-    populateFilterDate();
-    document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
-    loadTable();
-  };
+      // Date - not editable
+      cell=row.insertCell(); cell.textContent=entry.date; cell.contentEditable=false;
 
-  function populateFilterDate() {
-    const filterDate = document.getElementById('filterDate');
-    const dateSet = new Set();
-    Object.keys(dailyData).forEach(day => {
-      Object.keys(dailyData[day]).forEach(run => {
-        dailyData[day][run].forEach(entry => {
-          dateSet.add(entry.date);
-        });
+      // Vehicle
+      cell=row.insertCell(); cell.textContent=entry.vehicle; cell.contentEditable=true;
+
+      // Run
+      cell=row.insertCell(); cell.textContent=entry.run; cell.contentEditable=true;
+
+      // Collection and Delivery Point
+      cell=row.insertCell(); cell.textContent=entry.location; cell.contentEditable=true;
+
+      // Arrival, Booking, Loading, Departure
+      ['arrival','booking','loading','departure'].forEach(field=>{
+        cell=row.insertCell(); cell.textContent=entry[field]||""; cell.contentEditable=true;
       });
+
+      // Collection and Delivery Specification - penultima
+      cell=row.insertCell(); cell.textContent=entry.specification||""; cell.contentEditable=true;
+
+      // Comment
+      cell=row.insertCell(); cell.textContent=entry.comment||""; cell.contentEditable=true;
     });
-    const dates = Array.from(dateSet).sort();
-    if(dates.length === 0) {
-      filterDate.value = "";
-      filterDate.placeholder = "No data available";
-      return;
-    }
-    filterDate.value = dates[0];
-    filterDate.min = dates[0];
-    filterDate.max = dates[dates.length-1];
-  }
-
-  function getRunKey() { return document.getElementById('run').value.trim(); }
-
-  function loadTable(dateForTable = new Date().toISOString().split('T')[0]) {
-    const tbody = document.getElementById('reportTable').getElementsByTagName('tbody')[0];
-    tbody.innerHTML = "";
-    const runKey = getRunKey();
-    if(!dailyData[dateForTable]) return;
-
-    Object.keys(dailyData[dateForTable]).forEach(run => {
-      if(runKey && run !== runKey) return;
-      dailyData[dateForTable][run].forEach(entry => {
-        const row = tbody.insertRow();
-        let cell;
-
-        // Date - not editable
-        cell = row.insertCell(); cell.textContent = entry.date; cell.contentEditable = false;
-
-        // Vehicle
-        cell = row.insertCell(); cell.textContent = entry.vehicle; cell.contentEditable = true;
-
-        // Run
-        cell = row.insertCell(); cell.textContent = entry.run; cell.contentEditable = true;
-
-        // Collection and Delivery Point
-        cell = row.insertCell(); cell.textContent = entry.location; cell.contentEditable = true;
-
-        // Arrival, Booking, Loading, Departure
-        ['arrival','booking','loading','departure'].forEach(field => {
-          cell = row.insertCell(); cell.textContent = entry[field] || ""; cell.contentEditable = true;
-        });
-
-        // Collection and Delivery Specification
-        cell = row.insertCell(); cell.textContent = entry.specification || ""; cell.contentEditable = true;
-
-        // Comment
-        cell = row.insertCell(); cell.textContent = entry.comment || ""; cell.contentEditable = true;
-      });
-    });
-  }
-
-  document.getElementById('run').addEventListener('input', function() {
-    loadTable(document.getElementById('filterDate').value || new Date().toISOString().split('T')[0]);
   });
-  document.getElementById('filterDate').addEventListener('change', function() { loadTable(this.value); });
+}
 
-  document.getElementById('addEntryBtn').addEventListener('click', function() {
-    const vehicle = document.getElementById('vehicle').value.trim();
-    const run = document.getElementById('run').value.trim();
-    const date = new Date().toISOString().split('T')[0]; // auto date
-    const specification = document.getElementById('specification').value;
-    let locationSelect = document.getElementById('location').value;
-    let location = locationSelect === "manual" ? document.getElementById('manualLocation').value.trim() : locationSelect;
-    const arrival = document.getElementById('arrival').value;
-    const booking = document.getElementById('booking').value;
-    const loading = document.getElementById('loading').value;
-    const departure = document.getElementById('departure').value;
-    const comment = document.getElementById('comment').value.trim();
+document.getElementById('run').addEventListener('input', function(){
+  loadTable(document.getElementById('filterDate').value || new Date().toISOString().split('T')[0]);
+});
+document.getElementById('filterDate').addEventListener('change', function(){ loadTable(this.value); });
 
-    if(!vehicle || !run || !location || !specification) { alert("Please fill all required fields!"); return; }
+document.getElementById('addEntryBtn').addEventListener('click', function(){
+  const vehicle=document.getElementById('vehicle').value.trim();
+  const run=document.getElementById('run').value.trim();
+  const date=new Date().toISOString().split('T')[0];
+  const specification=document.getElementById('specification').value;
+  let locationSelect=document.getElementById('location').value;
+  let location=locationSelect==='manual'?document.getElementById('manualLocation').value.trim():locationSelect;
+  const arrival=document.getElementById('arrival').value;
+  const booking=document.getElementById('booking').value;
+  const loading=document.getElementById('loading').value;
+  const departure=document.getElementById('departure').value;
+  const comment=document.getElementById('comment').value.trim();
 
-    localStorage.setItem('vehicle', vehicle);
-    localStorage.setItem('run', run);
-    localStorage.setItem('specification', specification);
+  if(!vehicle||!run||!location||!specification){ alert("Please fill all required fields!"); return; }
 
-    if(!dailyData[date]) dailyData[date] = {};
-    if(!dailyData[date][run]) dailyData[date][run] = [];
+  localStorage.setItem('vehicle',vehicle);
+  localStorage.setItem('run',run);
+  localStorage.setItem('specification',specification);
 
-    const entry = {date, vehicle, run, location, arrival, booking, loading, departure, specification, comment};
-    dailyData[date][run].push(entry);
-    localStorage.setItem('dailyData', JSON.stringify(dailyData));
+  if(!dailyData[date]) dailyData[date]={};
+  if(!dailyData[date][run]) dailyData[date][run]=[];
 
-    document.getElementById('location').value = "";
-    document.getElementById('manualLocation').value = "";
-    document.getElementById('manualLocation').style.display = 'none';
-    ['arrival','booking','loading','departure'].forEach(id => document.getElementById(id).value="");
-    document.getElementById('comment').value="";
-    document.getElementById('specification').value="";
+  const entry={date,vehicle,run,location,arrival,booking,loading,departure,specification,comment};
+  dailyData[date][run].push(entry);
+  localStorage.setItem('dailyData',JSON.stringify(dailyData));
 
-    populateFilterDate();
-    loadTable(date);
+  document.getElementById('location').value=""; document.getElementById('manualLocation').value=""; document.getElementById('manualLocation').style.display='none';
+  ['arrival','booking','loading','departure'].forEach(id=>document.getElementById(id).value="");
+  document.getElementById('comment').value=""; document.getElementById('specification').value="";
+
+  populateFilterDate();
+  loadTable(date);
+});
+
+document.getElementById('sendExcelBtn').addEventListener('click', function(){
+  const filterDate=document.getElementById('filterDate').value;
+  if(!filterDate||!dailyData[filterDate]){ alert("No data for selected date!"); return; }
+
+  const runKey=getRunKey();
+  let csvContent="data:text/csv;charset=utf-8,";
+  csvContent+="Date,Vehicle,Run,Collection and Delivery Point,Arrival Time,Booking Time,Loading,Departure,Collection and Delivery Specification,Comment\n";
+
+  dailyData[filterDate][runKey]?.forEach(entry=>{
+    const row=[
+      entry.date, entry.vehicle, entry.run, entry.location, entry.arrival||"",
+      entry.booking||"", entry.loading||"", entry.departure||"",
+      entry.specification||"", entry.comment?'"'+entry.comment.replace(/"/g,'""')+'"':""
+    ];
+    csvContent+=row.join(",")+"\n";
   });
 
-  document.getElementById('sendExcelBtn').addEventListener('click', function() {
-    const filterDate = document.getElementById('filterDate').value;
-    if(!filterDate || !dailyData[filterDate]) { alert("No data for selected date!"); return; }
+  const encodedUri=encodeURI(csvContent);
+  const link=document.createElement("a");
+  link.setAttribute("href",encodedUri);
+  link.setAttribute("download",`driver_daily_report_${filterDate}.csv`);
+  document.body.appendChild(link); link.click(); document.body.removeChild(link);
 
-    const runKey = getRunKey();
-    let csvContent = "data:text/csv;charset=utf-8,";
-    csvContent += "Date,Vehicle,Run,Collection and Delivery Point,Arrival Time,Booking Time,Loading,Departure,Collection and Delivery Specification,Comment\n";
-
-    dailyData[filterDate][runKey]?.forEach(entry => {
-      const row = [
-        entry.date, entry.vehicle, entry.run, entry.location, entry.arrival || "",
-        entry.booking || "", entry.loading || "", entry.departure || "",
-        entry.specification || "", entry.comment ? '"' + entry.comment.replace(/"/g,'""') + '"' : ""
-      ];
-      csvContent += row.join(",") + "\n";
-    });
-
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `driver_daily_report_${filterDate}.csv`);
-    document.body.appendChild(link); link.click(); document.body.removeChild(link);
-
-    generatedDays[filterDate] = true;
-    localStorage.setItem('generatedDays', JSON.stringify(generatedDays));
-    alert("Excel generated for " + filterDate);
-  });
+  generatedDays[filterDate]=true;
+  localStorage.setItem('generatedDays',JSON.stringify(generatedDays));
+  alert("Excel generated for "+filterDate);
+});
 </script>
 
 </body>
