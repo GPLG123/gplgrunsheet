@@ -12,10 +12,15 @@ textarea { width:100%; height:40px; resize:vertical;}
 button { padding:8px 15px; margin-top:10px; cursor:pointer;}
 table { width:100%; border-collapse: collapse; margin-top:20px; font-size:14px;}
 th, td { border:1px solid #888; padding:6px 8px; text-align:center;}
-th { background-color:#eee;}
+th { background-color:#eee; }
+
+th:nth-child(4), td:nth-child(4) { width:120px; }  /* Collection and Delivery Point */
+th:nth-child(9), td:nth-child(9) { width:140px; }  /* Collection and Delivery Specification */
+th:nth-child(10), td:nth-child(10) { width:250px; } /* Comment */
+
 td[contenteditable="true"]:focus { outline:2px solid #6ca0dc; background-color:#f0f8ff; }
-#alertExcel { margin-top:15px; background-color:#f8d7da; border:1px solid #f5c6cb; color:#721c24; padding:10px; font-weight:bold; }
 .short { width:120px;}
+#alertExcel { margin-top:15px; background-color:#f8d7da; border:1px solid #f5c6cb; color:#721c24; padding:10px; font-weight:bold; }
 </style>
 </head>
 <body>
@@ -118,6 +123,8 @@ td[contenteditable="true"]:focus { outline:2px solid #6ca0dc; background-color:#
 </table>
 
 <script>
+const specificationOptions=["Collection Only","Delivery Only","Collection and Delivery"];
+
 document.getElementById('location').addEventListener('change', function() {
   if(this.value==='manual') document.getElementById('manualLocation').style.display='block';
   else { document.getElementById('manualLocation').style.display='none'; document.getElementById('manualLocation').value=''; }
@@ -131,11 +138,8 @@ window.onload = function(){
   if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
   if(localStorage.getItem('specification')) document.getElementById('specification').value=localStorage.getItem('specification');
 
-  if(!document.getElementById('arrival').value) document.getElementById('arrival').value="08:30";
-  if(!document.getElementById('booking').value) document.getElementById('booking').value="08:00";
-  if(!document.getElementById('loading').value) document.getElementById('loading').value="08:45";
-  if(!document.getElementById('departure').value) document.getElementById('departure').value="09:00";
-
+  ['arrival','booking','loading','departure'].forEach(id=>{ if(!document.getElementById(id).value) document.getElementById(id).value=id==="departure"?"09:00":"08:00"; });
+  
   populateFilterDate();
   document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
   loadTable();
@@ -156,6 +160,30 @@ function populateFilterDate(){
 
 function getRunKey(){ return document.getElementById('run').value.trim(); }
 
+function createSpecificationSelect(value,date,run){
+  const select=document.createElement('select');
+  specificationOptions.forEach(opt=>{
+    const option=document.createElement('option');
+    option.value=opt; option.text=opt;
+    if(opt===value) option.selected=true;
+    select.appendChild(option);
+  });
+  select.addEventListener('change', function(){
+    // update localStorage
+    const entries=dailyData[date][run];
+    const index=entries.findIndex(e=>e.date===date && e.specification===value);
+    for(let i=0;i<entries.length;i++){
+      const e=entries[i];
+      if(e.date===date && e.vehicle===entries[i].vehicle && e.run===run && e.location===entries[i].location && e.departure===entries[i].departure){
+        e.specification=this.value;
+        break;
+      }
+    }
+    localStorage.setItem('dailyData',JSON.stringify(dailyData));
+  });
+  return select;
+}
+
 function loadTable(dateForTable=new Date().toISOString().split('T')[0]){
   const tbody=document.getElementById('reportTable').getElementsByTagName('tbody')[0];
   tbody.innerHTML="";
@@ -170,33 +198,25 @@ function loadTable(dateForTable=new Date().toISOString().split('T')[0]){
 
       // Date - not editable
       cell=row.insertCell(); cell.textContent=entry.date; cell.contentEditable=false;
-
       // Vehicle
       cell=row.insertCell(); cell.textContent=entry.vehicle; cell.contentEditable=true;
-
       // Run
       cell=row.insertCell(); cell.textContent=entry.run; cell.contentEditable=true;
-
       // Collection and Delivery Point
       cell=row.insertCell(); cell.textContent=entry.location; cell.contentEditable=true;
-
       // Arrival, Booking, Loading, Departure
       ['arrival','booking','loading','departure'].forEach(field=>{
         cell=row.insertCell(); cell.textContent=entry[field]||""; cell.contentEditable=true;
       });
-
-      // Collection and Delivery Specification - penultima
-      cell=row.insertCell(); cell.textContent=entry.specification||""; cell.contentEditable=true;
-
+      // Collection and Delivery Specification - dropdown
+      cell=row.insertCell(); cell.appendChild(createSpecificationSelect(entry.specification||"",dateForTable,run));
       // Comment
       cell=row.insertCell(); cell.textContent=entry.comment||""; cell.contentEditable=true;
     });
   });
 }
 
-document.getElementById('run').addEventListener('input', function(){
-  loadTable(document.getElementById('filterDate').value || new Date().toISOString().split('T')[0]);
-});
+document.getElementById('run').addEventListener('input', function(){ loadTable(document.getElementById('filterDate').value || new Date().toISOString().split('T')[0]); });
 document.getElementById('filterDate').addEventListener('change', function(){ loadTable(this.value); });
 
 document.getElementById('addEntryBtn').addEventListener('click', function(){
@@ -264,4 +284,3 @@ document.getElementById('sendExcelBtn').addEventListener('click', function(){
 
 </body>
 </html>
--
