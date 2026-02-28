@@ -16,7 +16,6 @@
     }
     input[type="text"],
     input[type="time"],
-    input[type="date"],
     select,
     textarea {
       margin-top: 4px;
@@ -75,9 +74,6 @@
 
 <label for="run">Run:</label>
 <input type="text" id="run" class="short" placeholder="Run #" />
-
-<label for="date">Date:</label>
-<input type="date" id="date" />
 
 <hr>
 
@@ -169,7 +165,6 @@
 </table>
 
 <script>
-  // Show manual location input if 'Other (Manual)' selected
   document.getElementById('location').addEventListener('change', function() {
     if(this.value === 'manual') {
       document.getElementById('manualLocation').style.display = 'block';
@@ -179,15 +174,13 @@
     }
   });
 
-  let todayStr = new Date().toISOString().split('T')[0];
   let dailyData = JSON.parse(localStorage.getItem('dailyData') || "{}");
   let generatedDays = JSON.parse(localStorage.getItem('generatedDays') || "{}");
+  let todayStr = new Date().toISOString().split('T')[0];
 
-  // Load saved values on page load
   window.onload = function() {
     if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value = localStorage.getItem('vehicle');
     if(localStorage.getItem('run')) document.getElementById('run').value = localStorage.getItem('run');
-    if(localStorage.getItem('date')) document.getElementById('date').value = localStorage.getItem('date');
     if(localStorage.getItem('specification')) document.getElementById('specification').value = localStorage.getItem('specification');
 
     if(!document.getElementById('arrival').value) document.getElementById('arrival').value = "08:30";
@@ -203,7 +196,6 @@
   function populateFilterDate() {
     const filterDate = document.getElementById('filterDate');
     const dateSet = new Set();
-
     Object.keys(dailyData).forEach(day => {
       Object.keys(dailyData[day]).forEach(run => {
         dailyData[day][run].forEach(entry => {
@@ -211,7 +203,6 @@
         });
       });
     });
-
     const dates = Array.from(dateSet).sort();
     if(dates.length === 0) {
       filterDate.value = "";
@@ -220,7 +211,7 @@
     }
     filterDate.value = dates[0];
     filterDate.min = dates[0];
-    filterDate.max = dates[dates.length - 1];
+    filterDate.max = dates[dates.length-1];
   }
 
   function getRunKey() {
@@ -231,42 +222,41 @@
     const tbody = document.getElementById('reportTable').getElementsByTagName('tbody')[0];
     tbody.innerHTML = "";
     const runKey = getRunKey();
-
     if(!dailyData[dateForTable]) return;
 
     Object.keys(dailyData[dateForTable]).forEach(run => {
       if(runKey && run !== runKey) return;
-
       dailyData[dateForTable][run].forEach(entry => {
         const row = tbody.insertRow();
+        let cell;
 
-        // Date (not editable)
-        let cell = row.insertCell();
+        // Date - not editable
+        cell = row.insertCell();
         cell.textContent = entry.date;
         cell.contentEditable = false;
 
-        // Vehicle (editable)
+        // Vehicle
         cell = row.insertCell();
         cell.textContent = entry.vehicle;
         cell.contentEditable = true;
 
-        // Run (editable)
+        // Run
         cell = row.insertCell();
         cell.textContent = entry.run;
         cell.contentEditable = true;
 
-        // Collection and Delivery Specification (editable)
+        // Collection and Delivery Specification
         cell = row.insertCell();
         cell.textContent = entry.specification || "";
         cell.contentEditable = true;
 
-        // Collection and Delivery Point (editable)
+        // Collection and Delivery Point
         cell = row.insertCell();
         cell.textContent = entry.location || "";
         cell.contentEditable = true;
 
-        // Times and comment (all editable)
-        ['arrival', 'booking', 'loading', 'departure', 'comment'].forEach(field => {
+        // Times and comment
+        ['arrival','booking','loading','departure','comment'].forEach(field => {
           cell = row.insertCell();
           cell.textContent = entry[field] || "";
           cell.contentEditable = true;
@@ -287,7 +277,7 @@
   document.getElementById('addEntryBtn').addEventListener('click', function() {
     const vehicle = document.getElementById('vehicle').value.trim();
     const run = document.getElementById('run').value.trim();
-    const date = document.getElementById('date').value;
+    const date = new Date().toISOString().split('T')[0]; // auto-set date
     const specification = document.getElementById('specification').value;
     let locationSelect = document.getElementById('location').value;
     let location = locationSelect === "manual" ? document.getElementById('manualLocation').value.trim() : locationSelect;
@@ -297,14 +287,13 @@
     const departure = document.getElementById('departure').value;
     const comment = document.getElementById('comment').value.trim();
 
-    if(!vehicle || !run || !date || !location || !specification) {
+    if(!vehicle || !run || !location || !specification) {
       alert("Please fill all required fields!");
       return;
     }
 
     localStorage.setItem('vehicle', vehicle);
     localStorage.setItem('run', run);
-    localStorage.setItem('date', date);
     localStorage.setItem('specification', specification);
 
     if(!dailyData[date]) dailyData[date] = {};
@@ -312,7 +301,6 @@
 
     const entry = {date, vehicle, run, specification, location, arrival, booking, loading, departure, comment};
     dailyData[date][run].push(entry);
-
     localStorage.setItem('dailyData', JSON.stringify(dailyData));
 
     document.getElementById('location').value = "";
@@ -323,9 +311,7 @@
     document.getElementById('specification').value = "";
 
     populateFilterDate();
-
-    const filterDate = document.getElementById('filterDate').value || todayStr;
-    loadTable(filterDate);
+    loadTable(date);
   });
 
   document.getElementById('sendExcelBtn').addEventListener('click', function() {
