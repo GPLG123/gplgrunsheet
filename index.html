@@ -26,9 +26,6 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 <label>Run:</label>
 <input type="text" id="run" class="short" placeholder="Run #">
 
-<label>Date:</label>
-<input type="date" id="date" class="short" value="">
-
 <hr>
 
 <label>Collection and Delivery Point:</label>
@@ -81,7 +78,7 @@ button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
 <hr>
 
 <label>Select Date to View / Generate Excel:</label>
-<input type="date" id="filterDate" class="short" value="">
+<input type="date" id="filterDate" class="short">
 
 <div id="alertExcel">
 ⚠️ Important: After adding all locations, make sure to click <strong>Send Excel</strong> to save your daily report locally! ⚠️
@@ -127,28 +124,43 @@ function checkManual(){
 }
 
 // ===== Storage =====
-let todayStr = new Date().toISOString().split('T')[0];
 let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
-let generatedDays = JSON.parse(localStorage.getItem('generatedDays')||"{}");
 
 // Load saved global values
 window.onload=function(){
     if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value=localStorage.getItem('vehicle');
     if(localStorage.getItem('run')) document.getElementById('run').value=localStorage.getItem('run');
-    if(localStorage.getItem('date')) document.getElementById('date').value=localStorage.getItem('date');
 
-    document.getElementById('filterDate').value = todayStr;
-
-    if(!document.getElementById('arrival').value) document.getElementById('arrival').value="08:30";
-    if(!document.getElementById('booking').value) document.getElementById('booking').value="08:00";
-    if(!document.getElementById('loading').value) document.getElementById('loading').value="08:45";
-    if(!document.getElementById('departure').value) document.getElementById('departure').value="09:00";
-
-    loadTable(todayStr);
+    populateFilterDate();
+    const today = new Date().toISOString().split('T')[0];
+    loadTable(today);
 };
 
 // Load table filtered by date + run
 function getRunKey(){ return document.getElementById('run').value; }
+
+function populateFilterDate() {
+    const filterDate = document.getElementById('filterDate');
+    const dateSet = new Set();
+    Object.keys(dailyData).forEach(day => {
+        Object.keys(dailyData[day]).forEach(run=>{
+            dailyData[day][run].forEach(entry=>{
+                dateSet.add(entry.date);
+            });
+        });
+    });
+
+    const dates = Array.from(dateSet).sort();
+    if(dates.length === 0){
+        filterDate.value = "";
+        filterDate.placeholder = "No data available";
+        return;
+    }
+
+    filterDate.value = dates[0];
+    filterDate.min = dates[0];
+    filterDate.max = dates[dates.length-1];
+}
 
 document.getElementById('filterDate').addEventListener('change', function(){
     const selectedDate = this.value;
@@ -157,11 +169,12 @@ document.getElementById('filterDate').addEventListener('change', function(){
 });
 
 document.getElementById('run').addEventListener('input', function(){
-    const selectedDate = document.getElementById('filterDate').value || todayStr;
+    const selectedDate = document.getElementById('filterDate').value;
+    if(!selectedDate) return;
     loadTable(selectedDate);
 });
 
-function loadTable(dateForTable = todayStr){
+function loadTable(dateForTable){
     const tbody = document.getElementById('reportTable').getElementsByTagName('tbody')[0];
     tbody.innerHTML = "";
     const runKey = getRunKey();
@@ -171,10 +184,10 @@ function loadTable(dateForTable = todayStr){
         if(runKey && run !== runKey) return;
         dailyData[dateForTable][run].forEach(entry=>{
             const row = tbody.insertRow();
-            Object.values(entry).forEach(v=>{
+            Object.keys(entry).forEach(key=>{
                 const cell = row.insertCell();
-                cell.innerText = v;
-                cell.contentEditable = true;
+                cell.innerText = entry[key];
+                if(key!=="date") cell.contentEditable = true;
             });
         });
     });
@@ -183,7 +196,6 @@ function loadTable(dateForTable = todayStr){
 function addEntry(){
     const vehicle=document.getElementById('vehicle').value;
     const run=document.getElementById('run').value;
-    const date=document.getElementById('date').value;
     const locationSelect=document.getElementById('location').value;
     const location=locationSelect==="manual"?document.getElementById('manualLocation').value:locationSelect;
     const booking=document.getElementById('booking').value;
@@ -192,31 +204,35 @@ function addEntry(){
     const departure=document.getElementById('departure').value;
     const comment=document.getElementById('comment').value;
 
-    if(!vehicle||!run||!date||!location){alert("Please fill all required fields!"); return;}
+    if(!vehicle||!run||!location){alert("Please fill all required fields!"); return;}
+
+    const today = new Date().toISOString().split('T')[0];
 
     localStorage.setItem('vehicle',vehicle);
     localStorage.setItem('run',run);
-    localStorage.setItem('date',date);
 
-    if(!dailyData[date]) dailyData[date]={};
-    if(!dailyData[date][run]) dailyData[date][run]=[];
+    if(!dailyData[today]) dailyData[today]={};
+    if(!dailyData[today][run]) dailyData[today][run]=[];
 
-    const entry={date,vehicle,run,location,arrival,booking,loading,departure,comment};
-    dailyData[date][run].push(entry);
+    const entry={date:today,vehicle,run,location,arrival,booking,loading,departure,comment};
+    dailyData[today][run].push(entry);
     localStorage.setItem('dailyData',JSON.stringify(dailyData));
 
-    loadTable(document.getElementById('filterDate').value || todayStr);
+    const filterDate = document.getElementById('filterDate').value || today;
+    loadTable(filterDate);
 
     document.getElementById("location").value="";
     document.getElementById("manualLocation").value="";
     document.getElementById("manualLocation").style.display="none";
     timeFields.forEach(f=>document.getElementById(f).value="");
     document.getElementById("comment").value="";
+
+    populateFilterDate();
 }
 
 function sendExcel(){
-    const selectedDate = document.getElementById('filterDate').value || todayStr;
-    if(!dailyData[selectedDate]){
+    const selectedDate = document.getElementById('filterDate').value;
+    if(!selectedDate || !dailyData[selectedDate]){
         alert("No data for selected date!");
         return;
     }
@@ -246,8 +262,6 @@ function sendExcel(){
     a.click();
     URL.revokeObjectURL(url);
 
-    generatedDays[selectedDate]=true;
-    localStorage.setItem('generatedDays',JSON.stringify(generatedDays));
     alert("Excel generated for " + selectedDate);
 }
 </script>
