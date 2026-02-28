@@ -112,6 +112,12 @@ window.onload = function() {
     if(localStorage.getItem('vehicle')) document.getElementById('vehicle').value = localStorage.getItem('vehicle');
     if(localStorage.getItem('run')) document.getElementById('run').value = localStorage.getItem('run');
     if(localStorage.getItem('date')) document.getElementById('date').value = localStorage.getItem('date');
+
+    // Optional: preset times
+    if(!document.getElementById('booking').value) document.getElementById('booking').value = "08:00";
+    if(!document.getElementById('arrival').value) document.getElementById('arrival').value = "08:30";
+    if(!document.getElementById('loading').value) document.getElementById('loading').value = "08:45";
+    if(!document.getElementById('departure').value) document.getElementById('departure').value = "09:00";
 };
 
 function checkManual() {
