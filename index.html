@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Driver Daily Report - ARCY</title>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
@@ -26,12 +26,12 @@ th { background-color:#eee; }
 <h2>Driver Daily Report - ARCY</h2>
 
 <label>Vehicle:</label>
-<input type="text" id="vehicle" />
+<input type="text" id="vehicle">
 
 <label>Run #:</label>
-<input type="text" id="run" />
+<input type="text" id="run">
 
-<hr />
+<hr>
 
 <label>Collection and Delivery Specification:</label>
 <select id="specification">
@@ -72,29 +72,29 @@ th { background-color:#eee; }
   <option value="manual">Other (Manual)</option>
 </select>
 
-<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;" />
+<input type="text" id="manualLocation" placeholder="Enter manual location" style="display:none; margin-top:6px; width: 220px;">
 
 <label>Arrival Time:</label>
-<input type="time" id="arrival" />
+<input type="time" id="arrival">
 
 <label>Booking Time:</label>
-<input type="time" id="booking" />
+<input type="time" id="booking">
 
 <label>Loading:</label>
-<input type="time" id="loading" />
+<input type="time" id="loading">
 
 <label>Departure:</label>
-<input type="time" id="departure" />
+<input type="time" id="departure">
 
 <label>Comment:</label>
 <textarea id="comment"></textarea>
 
 <button id="addEntryBtn">Add Location</button>
 
-<hr />
+<hr>
 
 <label>Select Date to View / Generate Excel:</label>
-<input type="date" id="filterDate" />
+<input type="date" id="filterDate">
 
 <div id="alertExcel">
 ⚠️ After adding all locations, click <strong>Send Excel</strong> to save report.
@@ -123,10 +123,9 @@ th { background-color:#eee; }
 
 <script>
 const HOURLY_RATE = 37.5;
-let dailyData = JSON.parse(localStorage.getItem('dailyData')||"{}");
 
-// Surse BEN/ATR care nu trebuie afișate în ARCY
-const blockedSources = ["gplgrunsheetBEN","gplgrunsheetATR"];
+// Folosim localStorage separat pentru ARCY
+let dailyData = JSON.parse(localStorage.getItem('dailyData_ARCY') || "{}");
 
 const locationSelect = document.getElementById('location');
 const manualLocationInput = document.getElementById('manualLocation');
@@ -145,7 +144,8 @@ function loadTable(date = filterDate.value){
   Object.keys(dailyData[date]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
     dailyData[date][runKey].forEach((entry, idx)=>{
-      if(blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
+      // Afișăm doar joburile ARCY
+      if(entry.source && entry.source !== "ARCY") return;
 
       const row = tbody.insertRow();
       row.insertCell().textContent = entry.date;
@@ -159,7 +159,7 @@ function loadTable(date = filterDate.value){
       row.insertCell().textContent = entry.specification;
       row.insertCell().textContent = entry.comment;
 
-      // Delete button with confirmation pop-up
+      // Delete button cu confirmare
       const actionCell = row.insertCell();
       const delBtn = document.createElement('button');
       delBtn.textContent = "Delete";
@@ -167,7 +167,7 @@ function loadTable(date = filterDate.value){
       delBtn.onclick = ()=>{
         if(confirm("Sunteți sigur că vreți să ștergeți acest rând?")) {
           dailyData[date][runKey].splice(idx,1);
-          localStorage.setItem('dailyData', JSON.stringify(dailyData));
+          localStorage.setItem('dailyData_ARCY', JSON.stringify(dailyData));
           loadTable(date);
         }
       };
@@ -194,26 +194,29 @@ addEntryBtn.addEventListener('click', ()=>{
   if(!dailyData[date]) dailyData[date]={};
   if(!dailyData[date][runVal]) dailyData[date][runVal]=[];
   dailyData[date][runVal].push({
+    source: "ARCY", // <- marcam ca job ARCY
     date, vehicle: vehicleVal, run: runVal, location: locationVal,
     arrival: arrivalVal, booking: bookingVal, loading: loadingVal,
     departure: departureVal, specification: specificationVal, comment: commentVal
   });
-  localStorage.setItem('dailyData', JSON.stringify(dailyData));
+  localStorage.setItem('dailyData_ARCY', JSON.stringify(dailyData));
   loadTable(date);
 });
 
+// Export Excel
 sendExcelBtn.addEventListener('click', ()=>{
   const selectedDate = filterDate.value;
   const runFilter = run.value.trim();
   if(!dailyData[selectedDate]) return alert("No data for date");
 
-  let rows=[];
-  let arrivals = [], departures = [];
+  let arrivals=[], departures=[], rows=[];
 
   Object.keys(dailyData[selectedDate]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
     dailyData[selectedDate][runKey].forEach(entry=>{
-      if(blockedSources.some(src => entry.location?.includes(src) || entry.comment?.includes(src))) return;
+      // Filtrăm joburile non-ARCY
+      if(entry.source && entry.source !== "ARCY") return;
+
       rows.push([
         entry.date, entry.vehicle, entry.run, entry.location,
         entry.arrival, entry.booking, entry.loading, entry.departure,
@@ -226,9 +229,11 @@ sendExcelBtn.addEventListener('click', ()=>{
 
   if(rows.length===0) return alert("No data for selected run/date");
 
-  let totalHours = 0;
+  let totalHours=0;
   if(arrivals.length && departures.length){
-    totalHours = roundTo30(Math.max(...departures) - Math.min(...arrivals))/60;
+    let start=Math.min(...arrivals);
+    let end=Math.max(...departures);
+    totalHours = roundTo30(end-start)/60;
   }
   let totalCost = totalHours * HOURLY_RATE;
 
@@ -247,12 +252,13 @@ sendExcelBtn.addEventListener('click', ()=>{
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Daily Report");
 
-  let fileName = `Driver_Report_${selectedDate}`;
-  if(runFilter) fileName += `_Run_${runFilter}`;
+  let fileName = "Driver_Report_"+selectedDate;
+  if(runFilter) fileName += "_Run_"+runFilter;
 
-  XLSX.writeFile(wb, fileName + ".xlsx");
+  XLSX.writeFile(wb, fileName+".xlsx");
 });
 
+// Initialize
 window.onload = function(){
   filterDate.value = new Date().toISOString().split('T')[0];
   loadTable();
