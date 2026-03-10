@@ -205,7 +205,7 @@ sendExcelBtn.addEventListener('click', ()=>{
   const runFilter = run.value.trim();
   if(!dailyData[selectedDate]) return alert("No data for date");
 
-  let arrivals=[], departures=[], rows=[];
+  let arrivals=[], departures=[], rows=[], runNames=[], vehicleRegs=[];
 
   Object.keys(dailyData[selectedDate]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
@@ -219,6 +219,8 @@ sendExcelBtn.addEventListener('click', ()=>{
       ]);
       if(entry.arrival) arrivals.push(timeToMinutes(entry.arrival));
       if(entry.departure) departures.push(timeToMinutes(entry.departure));
+      if(entry.run) runNames.push(entry.run);
+      if(entry.vehicle) vehicleRegs.push(entry.vehicle);
     });
   });
 
@@ -231,10 +233,13 @@ sendExcelBtn.addEventListener('click', ()=>{
     totalHours = roundTo30(end-start)/60;
   }
 
+  const uniqueRun = runNames.length ? runNames[0] : "";
+  const uniqueVehicle = vehicleRegs.length ? vehicleRegs[0] : "";
+
   const sheetData = [
     ["TOTAL HOURS", totalHours],
-    ["Run"],
-    ["Vehicle Reg"],
+    ["Run", uniqueRun],
+    ["Vehicle Reg", uniqueVehicle],
     [],
     ["Date","Vehicle","Run","Location","Arrival","Booking","Loading","Departure","Specification","Comment"],
     ...rows
