@@ -124,7 +124,6 @@ th { background-color:#eee; }
 <script>
 const HOURLY_RATE = 37.5;
 
-// Folosim localStorage separat pentru ARCY
 let dailyData = JSON.parse(localStorage.getItem('dailyData_ARCY') || "{}");
 
 const locationSelect = document.getElementById('location');
@@ -144,7 +143,6 @@ function loadTable(date = filterDate.value){
   Object.keys(dailyData[date]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
     dailyData[date][runKey].forEach((entry, idx)=>{
-      // Afișăm doar joburile ARCY
       if(entry.source && entry.source !== "ARCY") return;
 
       const row = tbody.insertRow();
@@ -159,7 +157,6 @@ function loadTable(date = filterDate.value){
       row.insertCell().textContent = entry.specification;
       row.insertCell().textContent = entry.comment;
 
-      // Delete button cu confirmare
       const actionCell = row.insertCell();
       const delBtn = document.createElement('button');
       delBtn.textContent = "Delete";
@@ -194,7 +191,7 @@ addEntryBtn.addEventListener('click', ()=>{
   if(!dailyData[date]) dailyData[date]={};
   if(!dailyData[date][runVal]) dailyData[date][runVal]=[];
   dailyData[date][runVal].push({
-    source: "ARCY", // <- marcam ca job ARCY
+    source: "ARCY",
     date, vehicle: vehicleVal, run: runVal, location: locationVal,
     arrival: arrivalVal, booking: bookingVal, loading: loadingVal,
     departure: departureVal, specification: specificationVal, comment: commentVal
@@ -203,7 +200,6 @@ addEntryBtn.addEventListener('click', ()=>{
   loadTable(date);
 });
 
-// Export Excel
 sendExcelBtn.addEventListener('click', ()=>{
   const selectedDate = filterDate.value;
   const runFilter = run.value.trim();
@@ -214,7 +210,6 @@ sendExcelBtn.addEventListener('click', ()=>{
   Object.keys(dailyData[selectedDate]).forEach(runKey=>{
     if(runFilter && runKey !== runFilter) return;
     dailyData[selectedDate][runKey].forEach(entry=>{
-      // Filtrăm joburile non-ARCY
       if(entry.source && entry.source !== "ARCY") return;
 
       rows.push([
@@ -235,19 +230,18 @@ sendExcelBtn.addEventListener('click', ()=>{
     let end=Math.max(...departures);
     totalHours = roundTo30(end-start)/60;
   }
-  let totalCost = totalHours * HOURLY_RATE;
 
   const sheetData = [
     ["TOTAL HOURS", totalHours],
-    ["HOURLY RATE (£)", HOURLY_RATE],
-    ["TOTAL COST (£)", totalCost],
+    ["Run"],
+    ["Vehicle Reg"],
     [],
     ["Date","Vehicle","Run","Location","Arrival","Booking","Loading","Departure","Specification","Comment"],
     ...rows
   ];
 
   const ws = XLSX.utils.aoa_to_sheet(sheetData);
-  ws["B1"].z="0.00"; ws["B2"].z="£0.00"; ws["B3"].z="£0.00";
+  ws["B1"].z="0.00";
 
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, "Daily Report");
@@ -258,7 +252,6 @@ sendExcelBtn.addEventListener('click', ()=>{
   XLSX.writeFile(wb, fileName+".xlsx");
 });
 
-// Initialize
 window.onload = function(){
   filterDate.value = new Date().toISOString().split('T')[0];
   loadTable();
