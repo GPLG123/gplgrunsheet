@@ -99,8 +99,7 @@ th { background-color:#eee; }
 ⚠️ After adding all locations, click <strong>Send Excel</strong> to save report.
 </div>
 
-<!-- total hours display removed from UI -->
-<!-- <div id="totalHoursDisplay">TOTAL HOURS: 0</div> -->
+<!-- TOTAL HOURS removed from display -->
 
 <button id="sendExcelBtn">Send Excel</button>
 
@@ -148,6 +147,11 @@ locationSelect.addEventListener('change', ()=>{
 function timeToMinutes(t){ if(!t) return null; const [h,m]=t.split(":").map(Number); return h*60+m; }
 function roundTo30(mins){ let r=mins%30; return (r<=15)?mins-r:mins+(30-r); }
 
+// displayTotalHours now does nothing in DOM
+function displayTotalHours(hours){
+  // not displayed in app, used only for Excel
+}
+
 function loadTable(date = filterDate.value){
   const tbody = document.querySelector("#reportTable tbody");
   tbody.innerHTML = "";
@@ -166,8 +170,6 @@ function loadTable(date = filterDate.value){
 
       const row = tbody.insertRow();
       row.draggable = true;
-      row.addEventListener('dragstart', e=>row.classList.add('dragging'));
-      row.addEventListener('dragend', e=>row.classList.remove('dragging'));
 
       const cellsData = [
         entry.date, entry.vehicle, entry.run, entry.location,
@@ -195,32 +197,13 @@ function loadTable(date = filterDate.value){
     });
   });
 
-  // drag & drop reordering
-  tbody.addEventListener('dragover', e=>{
-    e.preventDefault();
-    const draggingRow = tbody.querySelector('.dragging');
-    const afterElement = getDragAfterElement(tbody, e.clientY);
-    if(afterElement == null) tbody.appendChild(draggingRow);
-    else tbody.insertBefore(draggingRow, afterElement);
-  });
-
-  function getDragAfterElement(container, y){
-    const draggableElements = [...container.querySelectorAll('tr:not(.dragging)')];
-    return draggableElements.reduce((closest, child)=>{
-      const box = child.getBoundingClientRect();
-      const offset = y - box.top - box.height/2;
-      if(offset < 0 && offset > closest.offset) return {offset: offset, element: child};
-      else return closest;
-    }, {offset: Number.NEGATIVE_INFINITY}).element;
-  }
-
   let totalHours = 0;
   if(allArrivals.length && allDepartures.length){
     const start = Math.min(...allArrivals);
     const end = Math.max(...allDepartures);
     totalHours = roundTo30(end-start)/60;
   }
-  window.totalHours = totalHours; // calcul păstrat pentru export Excel
+  window.totalHours = totalHours;
 }
 
 filterDate.addEventListener('change', ()=>loadTable(filterDate.value));
