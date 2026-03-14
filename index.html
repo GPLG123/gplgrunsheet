@@ -6,7 +6,6 @@
 <title>Driver Daily Report - ARCY</title>
 
 <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
-
 <style>
 body { font-family: Arial, sans-serif; margin: 20px; }
 label { font-weight: bold; margin-top: 10px; display: block; }
@@ -19,7 +18,8 @@ th { background-color:#eee; }
 .short { width:120px;}
 #alertExcel { margin-top:15px; background-color:#f8d7da; border:1px solid #f5c6cb; color:#721c24; padding:10px; font-weight:bold; }
 .deleteBtn { background-color:#dc3545; color:white; border:none; padding:4px 8px; cursor:pointer; border-radius:3px; }
-#totalHoursDisplay { font-weight:bold; margin-top:15px; font-size:16px; }
+#totalHoursDisplay { font-weight:bold; margin-top:15px; font-size:16px; cursor:default; }
+.dragging { opacity: 0.5; }
 </style>
 </head>
 <body>
@@ -61,7 +61,6 @@ th { background-color:#eee; }
   <option value="HCH Horton">HCH Horton</option>
   <option value="JL">JL</option>
   <option value="Royal Mail">Royal Mail</option>
-  <option value="LANDMARK GLOBAL">LANDMARK GLOBAL</option>
   <option value="MW">MW</option>
   <option value="Scylla Rd">Scylla Rd</option>
   <option value="Scylla U1">Scylla U1</option>
@@ -129,6 +128,18 @@ let dailyData = JSON.parse(localStorage.getItem('dailyData_ARCY') || "{}");
 
 const locationSelect = document.getElementById('location');
 const manualLocationInput = document.getElementById('manualLocation');
+const filterDate = document.getElementById('filterDate');
+const run = document.getElementById('run');
+const vehicle = document.getElementById('vehicle');
+const specification = document.getElementById('specification');
+const arrival = document.getElementById('arrival');
+const booking = document.getElementById('booking');
+const departure = document.getElementById('departure');
+const qty = document.getElementById('qty');
+const comment = document.getElementById('comment');
+const addEntryBtn = document.getElementById('addEntryBtn');
+const sendExcelBtn = document.getElementById('sendExcelBtn');
+
 locationSelect.addEventListener('change', ()=>{
   manualLocationInput.style.display = (locationSelect.value === 'manual') ? 'block' : 'none';
 });
@@ -161,6 +172,10 @@ function loadTable(date = filterDate.value){
       if(entry.departure) allDepartures.push(timeToMinutes(entry.departure));
 
       const row = tbody.insertRow();
+      row.draggable = true;
+      row.addEventListener('dragstart', e=>row.classList.add('dragging'));
+      row.addEventListener('dragend', e=>row.classList.remove('dragging'));
+
       const cellsData = [
         entry.date, entry.vehicle, entry.run, entry.location,
         entry.arrival, entry.booking, entry.departure,
@@ -187,11 +202,23 @@ function loadTable(date = filterDate.value){
     });
   });
 
-  // fallback ultima linie
-  if(allDepartures.length === 0 && tbody.rows.length){
-    const lastRow = tbody.rows[tbody.rows.length-1];
-    const depTime = lastRow.cells[6].textContent || lastRow.cells[5].textContent;
-    if(depTime) allDepartures.push(timeToMinutes(depTime));
+  // drag & drop reordering
+  tbody.addEventListener('dragover', e=>{
+    e.preventDefault();
+    const draggingRow = tbody.querySelector('.dragging');
+    const afterElement = getDragAfterElement(tbody, e.clientY);
+    if(afterElement == null) tbody.appendChild(draggingRow);
+    else tbody.insertBefore(draggingRow, afterElement);
+  });
+
+  function getDragAfterElement(container, y){
+    const draggableElements = [...container.querySelectorAll('tr:not(.dragging)')];
+    return draggableElements.reduce((closest, child)=>{
+      const box = child.getBoundingClientRect();
+      const offset = y - box.top - box.height/2;
+      if(offset < 0 && offset > closest.offset) return {offset: offset, element: child};
+      else return closest;
+    }, {offset: Number.NEGATIVE_INFINITY}).element;
   }
 
   let totalHours = 0;
@@ -280,6 +307,5 @@ window.onload = function(){
   loadTable();
 };
 </script>
-
 </body>
 </html>
